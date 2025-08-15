@@ -1,0 +1,21 @@
+{
+  "name": "credit-dispute-platform",
+  "version": "1.0.0",
+  "description": "Credit Dispute Management Platform - Full Stack Application",
+  "scripts": {
+    "dev": "concurrently \"npm run backend:dev\" \"npm run frontend:dev\"",
+    "backend:dev": "cd backend && npm run start:dev",
+    "frontend:dev": "cd frontend && npm run dev",
+    "build": "npm run backend:build && npm run frontend:build",
+    "backend:build": "cd backend && npm run build",
+    "frontend:build": "cd frontend && npm run build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "setup": "npm run backend:install && npm run frontend:install",
+    "backend:install": "cd backend && npm install",
+    "frontend:install": "cd frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
