@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { DisputesService } from './disputes.service';
 import { DisputesController } from './disputes.controller';
+import { DisputesService } from './disputes.service';
 import { Dispute } from './entities/dispute.entity';
-import { WebSocketModule } from '../websocket/websocket.module';
+import { DisputeGateway } from './dispute.gateway'; // Your gateway
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Dispute]), WebSocketModule],
+  imports: [TypeOrmModule.forFeature([Dispute])],
   controllers: [DisputesController],
-  providers: [DisputesService],
+  providers: [DisputesService, DisputeGateway],
 })
 export class DisputesModule {}

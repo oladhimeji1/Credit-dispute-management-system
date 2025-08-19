@@ -9,18 +9,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DisputesModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
-const disputes_service_1 = require("./disputes.service");
 const disputes_controller_1 = require("./disputes.controller");
+const disputes_service_1 = require("./disputes.service");
 const dispute_entity_1 = require("./entities/dispute.entity");
-const websocket_module_1 = require("../websocket/websocket.module");
+const dispute_gateway_1 = require("./dispute.gateway");
 let DisputesModule = class DisputesModule {
 };
 exports.DisputesModule = DisputesModule;
 exports.DisputesModule = DisputesModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([dispute_entity_1.Dispute]), websocket_module_1.WebSocketModule],
+        imports: [typeorm_1.TypeOrmModule.forFeature([dispute_entity_1.Dispute])],
         controllers: [disputes_controller_1.DisputesController],
-        providers: [disputes_service_1.DisputesService],
+        providers: [disputes_service_1.DisputesService, dispute_gateway_1.DisputeGateway],
     })
 ], DisputesModule);
 //# sourceMappingURL=disputes.module.js.map

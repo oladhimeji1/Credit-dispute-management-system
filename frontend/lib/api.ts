@@ -57,3 +57,33 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Disputes API methods
+export const disputesAPI = {
+  create: (data: any) => api.post('/disputes/create', data),
+  getHistory: () => api.get('/disputes/history'),
+  getById: (id: string) => api.get(`/disputes/${id}`),
+  update: (id: string, data: any) => api.patch(`/disputes/${id}`, data),
+  delete: (id: string) => api.delete(`/disputes/${id}`),
+  updateStatus: (id: string, status: string, adminNotes?: string) => 
+    api.put(`/disputes/${id}/status`, { status, adminNotes }),
+};
+
+// Users API methods
+export const usersAPI = {
+  getAll: () => api.get('/users'),
+  getById: (id: string) => api.get(`/users/${id}`),
+  update: (id: string, data: any) => api.patch(`/users/${id}`, data),
+  delete: (id: string) => api.delete(`/users/${id}`),
+  getMe: () => api.get('/users/me'),
+};
+
+// Credit Profile API methods
+export const creditProfileAPI = {
+  getByUserId: (userId: string) => api.get(`/credit-profile/${userId}`),
+};
+
+// AI API methods
+export const aiAPI = {
+  generateLetter: (data: any) => api.post('/ai/generate-letter', data),
+};

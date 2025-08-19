@@ -1,59 +1,40 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Put } from '@nestjs/common';
+import { Controller, Post, Get, Put, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { DisputesService } from './disputes.service';
-import { CreateDisputeDto } from './dto/create-dispute.dto';
-import { UpdateDisputeDto } from './dto/update-dispute.dto';
-import { UpdateDisputeStatusDto } from './dto/update-dispute-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../users/entities/user.entity';
 
 @Controller('disputes')
-@UseGuards(JwtAuthGuard)
 export class DisputesController {
   constructor(private readonly disputesService: DisputesService) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('user')
   @Post('create')
-  create(@Body() createDisputeDto: CreateDisputeDto, @Request() req) {
-    return this.disputesService.create(createDisputeDto, req.user.id);
+  async createDispute(@Req() req, @Body() dto: any) {
+    return this.disputesService.createDispute(dto, req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('history')
-  getHistory(@Request() req) {
-    if (req.user.role === UserRole.ADMIN) {
+  async getHistory(@Req() req) {
+    if (req.user.role === 'admin') {
       return this.disputesService.findAll();
     }
-    return this.disputesService.findByUserId(req.user.id);
+    return this.disputesService.getUserDisputes(req.user.id);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.disputesService.findOne(id);
-  }
-
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   @Put(':id/status')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  updateStatus(
-    @Param('id') id: string,
-    @Body() updateStatusDto: UpdateDisputeStatusDto,
-  ) {
-    return this.disputesService.updateStatus(
-      id,
-      updateStatusDto.status,
-      updateStatusDto.adminNotes,
-    );
+  async updateStatus(@Param('id') id: string, @Body() dto: any) {
+    return this.disputesService.updateDisputeStatus(id, dto.status, dto.adminNotes);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDisputeDto: UpdateDisputeDto) {
-    return this.disputesService.update(id, updateDisputeDto);
-  }
-
-  @Delete(':id')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.disputesService.remove(id);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @Get('all')
+  async getAllDisputes() {
+    return this.disputesService.findAll();
   }
 }

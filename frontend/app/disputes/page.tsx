@@ -10,6 +10,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { CreateDisputeDialog } from '@/components/disputes/create-dispute-dialog';
 import { DisputeDetailsDialog } from '@/components/disputes/dispute-details-dialog';
 import { useAuth } from '@/lib/contexts/auth-context';
+import { useWebSocket } from '@/lib/contexts/websocket-context';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { Plus, Search, Filter, Eye, Calendar } from 'lucide-react';
@@ -35,6 +36,7 @@ interface Dispute {
 
 export default function DisputesPage() {
   const { user } = useAuth();
+  const { socket, isConnected } = useWebSocket();
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [filteredDisputes, setFilteredDisputes] = useState<Dispute[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,6 +53,45 @@ export default function DisputesPage() {
   useEffect(() => {
     filterDisputes();
   }, [disputes, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    // Listen for dispute creation
+    socket.on('disputeCreated', (newDispute: Dispute) => {
+      // console.log('New dispute created:', newDispute);
+      setDisputes(prev => [newDispute, ...prev]);
+      toast.success(`New dispute created: ${newDispute.itemName}`);
+    });
+
+    // Listen for dispute updates
+    socket.on('disputeUpdated', (updatedDispute: Dispute) => {
+      // console.log('Dispute updated:', updatedDispute);
+      setDisputes(prev => prev.map(dispute => 
+        dispute.id === updatedDispute.id ? updatedDispute : dispute
+      ));
+      
+      // Update selected dispute if it's the one being updated
+      if (selectedDispute && selectedDispute.id === updatedDispute.id) {
+        setSelectedDispute(updatedDispute);
+      }
+      
+      toast.success(`Dispute updated: ${updatedDispute.itemName}`);
+    });
+
+    // Listen for dispute deletion
+    socket.on('disputeDeleted', (disputeId: string) => {
+      // console.log('Dispute deleted:', disputeId);
+      setDisputes(prev => prev.filter(dispute => dispute.id !== disputeId));
+      toast.success('Dispute deleted successfully');
+    });
+
+    return () => {
+      socket.off('disputeCreated');
+      socket.off('disputeUpdated');
+      socket.off('disputeDeleted');
+    };
+  }, [socket, isConnected, selectedDispute]);
 
   const loadDisputes = async () => {
     try {

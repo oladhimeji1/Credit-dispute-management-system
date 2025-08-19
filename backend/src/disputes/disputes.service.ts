@@ -1,20 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Dispute } from './entities/dispute.entity';
+import { DisputeStatus } from './entities/dispute.entity';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
-import { UpdateDisputeDto } from './dto/update-dispute.dto';
-import { Dispute, DisputeStatus } from './entities/dispute.entity';
-import { WebSocketGateway } from '../websocket/websocket.gateway';
+import { DisputeGateway } from './dispute.gateway';
 
 @Injectable()
 export class DisputesService {
   constructor(
     @InjectRepository(Dispute)
-    private disputeRepository: Repository<Dispute>,
-    private webSocketGateway: WebSocketGateway,
+    private readonly disputeRepository: Repository<Dispute>,
+    private readonly disputeGateway: DisputeGateway,
   ) {}
 
-  async create(createDisputeDto: CreateDisputeDto, userId: string): Promise<Dispute> {
+  async createDispute(createDisputeDto: CreateDisputeDto, userId: string): Promise<Dispute> {
     const dispute = this.disputeRepository.create({
       ...createDisputeDto,
       user: { id: userId },
@@ -22,61 +22,59 @@ export class DisputesService {
     });
 
     const savedDispute = await this.disputeRepository.save(dispute);
-    
+
     // Notify via WebSocket
-    this.webSocketGateway.notifyDisputeUpdate(savedDispute);
-    
+    this.disputeGateway.notifyDisputeCreated(savedDispute);
+
     return savedDispute;
   }
 
-  async findByUserId(userId: string): Promise<Dispute[]> {
+  async getUserDisputes(userId: string): Promise<Dispute[]> {
     return this.disputeRepository.find({
       where: { user: { id: userId } },
       relations: ['user'],
-      order: { createdAt: 'DESC' },
+      order: { createdAt: 'DESC' }
     });
+  }
+
+  async findOne(id: string): Promise<Dispute> {
+    const dispute = await this.disputeRepository.findOne({
+      where: { id },
+      relations: ['user']
+    });
+
+    if (!dispute) {
+      throw new NotFoundException(`Dispute with ID ${id} not found`);
+    }
+
+    return dispute;
+  }
+
+  async updateDisputeStatus(id: string, status: DisputeStatus, adminNotes?: string): Promise<Dispute> {
+    const dispute = await this.findOne(id);
+
+    dispute.status = status;
+    if (adminNotes) {
+      dispute.adminNotes = adminNotes;
+    }
+
+    const updatedDispute = await this.disputeRepository.save(dispute);
+
+    // Notify via WebSocket
+    this.disputeGateway.notifyDisputeUpdated(updatedDispute);
+
+    return updatedDispute;
+  }
+
+  async remove(id: string): Promise<void> {
+    const dispute = await this.findOne(id);
+    await this.disputeRepository.delete(id);
   }
 
   async findAll(): Promise<Dispute[]> {
     return this.disputeRepository.find({
       relations: ['user'],
-      order: { createdAt: 'DESC' },
+      order: { createdAt: 'DESC' }
     });
-  }
-
-  async findOne(id: string): Promise<Dispute> {
-    return this.disputeRepository.findOne({
-      where: { id },
-      relations: ['user'],
-    });
-  }
-
-  async update(id: string, updateDisputeDto: UpdateDisputeDto): Promise<Dispute> {
-    await this.disputeRepository.update(id, updateDisputeDto);
-    const updatedDispute = await this.findOne(id);
-    
-    // Notify via WebSocket
-    this.webSocketGateway.notifyDisputeUpdate(updatedDispute);
-    
-    return updatedDispute;
-  }
-
-  async updateStatus(id: string, status: DisputeStatus, adminNotes?: string): Promise<Dispute> {
-    const updateData: Partial<Dispute> = { status };
-    if (adminNotes) {
-      updateData.adminNotes = adminNotes;
-    }
-
-    await this.disputeRepository.update(id, updateData);
-    const updatedDispute = await this.findOne(id);
-    
-    // Notify via WebSocket
-    this.webSocketGateway.notifyDisputeUpdate(updatedDispute);
-    
-    return updatedDispute;
-  }
-
-  async remove(id: string): Promise<void> {
-    await this.disputeRepository.delete(id);
   }
 }
